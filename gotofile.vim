@@ -29,6 +29,13 @@ function! s:CompareFiles(file1, file2)
     return s:Strcmp(a:file1.name, a:file2.name)
 endfunc
 
+function! s:JoinFilePath(file)
+    if empty(a:file.dir)
+        return a:file.name
+    endif
+    return printf("%s/%s", a:file.dir, a:file.name)
+endfunc
+
 function! s:OpenFile(filetext)
     let namedir = split(a:filetext)
     let absname = namedir[0]
@@ -36,31 +43,29 @@ function! s:OpenFile(filetext)
        let dir = strpart(namedir[1], 1, len(namedir[1]) - 2) 
        let absname = printf("%s/%s", dir, absname)
     endif
-    echo absname
-    " execute ':e ' . absname
+    if !filereadable(absname)
+        let absname = s:JoinFilePath(s:FindFiles(split(a:filetext)[0])[0])
+    endif
+    execute ':e ' . absname
 endfunc
 
 function! s:FindFiles(expr)
-    let args = split(expr, ',')
+    let args = split(a:expr, ',')
+    if empty(args)
+        let args = ['']
+    endif
     let out = system(printf("find . -iname '*%s*' -type f | grep -v 'pyc'", args[0]))
     let files = map(split(out, "\n"), 'strpart(v:val, 2)')
     let files = map(files, 's:SplitFilePath(v:val)')
     if len(args) == 2
         let files = filter(files, 'match(v:val.dir, args[1]) != -1')
     endif
-    let files =  sort(files, 's:CompareFiles')
+    let files = sort(files, 's:CompareFiles')
     return files
 endfunc
 
 function! s:GetFiles(ArgLead, CmdLine, CursorPos)
-    let args = split(a:ArgLead, ',')
-    let out = system(printf("find . -iname '*%s*' -type f | grep -v 'pyc'", args[0]))
-    let files = map(split(out, "\n"), 'strpart(v:val, 2)')
-    let files = map(files, 's:SplitFilePath(v:val)')
-    if len(args) == 2
-        let files = filter(files, 'match(v:val.dir, args[1]) != -1')
-    endif
-    let files =  sort(files, 's:CompareFiles')
+    let files = s:FindFiles(a:ArgLead)
     let strings = []
     for file in files
         let s = file.name
