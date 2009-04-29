@@ -49,19 +49,44 @@ function! s:OpenFile(filetext)
     execute ':e ' . absname
 endfunc
 
-function! s:FindFiles(expr)
+function! s:FileNameForExpr(expr)
+    let args = split(a:expr, ',')
+    if empty(args)
+      return ''
+    endif
+    return args[0]
+endfunc
+
+function! s:DirNameForExpr(expr)
+    let args = split(a:expr, ',')
+    if empty(args) || len(args) != 2
+      return ''
+    endif
+    return args[1]
+endfunc
+
+function! s:FindFilesForIname(expr, iname_mask)
     let args = split(a:expr, ',')
     if empty(args)
         let args = ['']
     endif
-    let out = system(printf("find . -iname '*%s*' -type f | grep -v 'pyc'", args[0]))
+    let iname = printf(a:iname_mask, s:FileNameForExpr(a:expr))
+    let out = system(printf("find . -iname '%s' -type f | grep -v 'pyc'", iname))
     let files = map(split(out, "\n"), 'strpart(v:val, 2)')
     let files = map(files, 's:SplitFilePath(v:val)')
-    if len(args) == 2
-        let files = filter(files, 'match(v:val.dir, args[1]) != -1')
+    let dir = s:DirNameForExpr(a:expr)
+    if strlen(dir) > 0
+        let files = filter(files, 'match(v:val.dir, dir) != -1')
     endif
     let files = sort(files, 's:CompareFiles')
     return files
+endfunc
+
+function! s:FindFiles(expr)
+    let file = s:FileNameForExpr(a:expr)
+    let files1 = s:FindFilesForIname(a:expr, '%s*')
+    let files2 = filter(s:FindFilesForIname(a:expr, '*%s*'), 'match(v:val.name, file) != 0')
+    return extend(files1, files2) "expr: 'event', event.html must be before 'add_event.html'
 endfunc
 
 function! s:GetFiles(ArgLead, CmdLine, CursorPos)
