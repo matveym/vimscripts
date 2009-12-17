@@ -71,7 +71,7 @@ function! s:FindFilesForIname(expr, iname_mask)
         let args = ['']
     endif
     let iname = printf(a:iname_mask, s:FileNameForExpr(a:expr))
-    let out = system(printf("find . -iname '%s' -type f | grep -v 'pyc'", iname))
+    let out = system(printf("find . -iname '%s' -type f | grep -v 'pyc' | grep -v '\.class' | grep -v 'out'", iname))
     let files = map(split(out, "\n"), 'strpart(v:val, 2)')
     let files = map(files, 's:SplitFilePath(v:val)')
     let dir = s:DirNameForExpr(a:expr)
