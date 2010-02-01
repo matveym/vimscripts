@@ -39,6 +39,7 @@ function! Screen_Vars()
   let sessions = split(Screen_Session_Names(), "\\n")
   if len(sessions) == 1
     let g:screen_sessionname = sessions[0]
+    let g:screen_windowname = "0"
     return
   endif
 
